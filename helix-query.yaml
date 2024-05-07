@@ -2,7 +2,7 @@ indices:
   mysite:
     target: /query-index.json
     properties:
-author:
+      author:
         select: head > meta[name="author"]
         value: |
           attribute(el, 'content')
@@ -26,6 +26,10 @@ author:
         select: head > meta[name="category"]
         value: |
           attribute(el, 'content')
+      tag:
+        select: head > meta[property="article:tag"]
+        value: |
+          attribute(el, 'content')  
       topics:
         select: head > meta[name="topics"]
         value: |
