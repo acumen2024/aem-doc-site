@@ -15,7 +15,6 @@ import {
 
 import {
   getPlaceholders,
-  loadDelayed,
   loadTemplate,
   createElement,
   slugify,
