@@ -13,22 +13,115 @@ import {
   loadCSS,
 } from './aem.js';
 
+import {
+  getPlaceholders,
+  loadLazy,
+  loadDelayed,
+  loadTemplate,
+  createElement,
+  slugify,
+  variantsClassesToBEM,
+} from './common.js';
+
+import {
+  isVideoLink,
+  isSoundcloudLink,
+  isLowResolutionVideoUrl,
+  addVideoShowHandler,
+  addSoundcloudShowHandler,
+} from './video-helper.js';
+
+
 const LCP_BLOCKS = []; // add your LCP blocks to the list
+
+function getCTAContainer(ctaLink) {
+  return ['strong', 'em'].includes(ctaLink.parentElement.localName)
+    ? ctaLink.parentElement.parentElement
+    : ctaLink.parentElement;
+}
+
+function isCTALinkCheck(ctaLink) {
+  const btnContainer = getCTAContainer(ctaLink);
+  if (!btnContainer.classList.contains('button-container')) return false;
+  const nextSibling = btnContainer?.nextElementSibling;
+  const previousSibling = btnContainer?.previousElementSibling;
+  const twoPreviousSibling = previousSibling?.previousElementSibling;
+  const siblings = [previousSibling, nextSibling, twoPreviousSibling];
+  return siblings.some((elem) => elem?.localName === 'h1');
+}
 
 /**
  * Builds hero block and prepends to main in a new section.
  * @param {Element} main The container element
  */
 function buildHeroBlock(main) {
-  const h1 = main.querySelector('h1');
-  const picture = main.querySelector('picture');
+ const firstSection = main.querySelector('div');
+  if (!firstSection) return;
+  const firstElement = firstSection.firstElementChild;
+  if (firstElement.tagName === 'DIV' && firstElement.classList.length && !firstElement.classList.contains('hero')) return;
+
+  const h1 = firstSection.querySelector('h1');
+  const picture = firstSection.querySelector('picture');
+  let ctaLink = firstSection.querySelector('a');
+  let video = null;
+
+  // eslint-disable-next-line no-use-before-define
+  if (ctaLink && isLowResolutionVideoUrl(ctaLink.getAttribute('href'))) {
+    const videoTemp = `
+      <video muted loop class="hero-video">
+        <source src="${ctaLink.getAttribute('href')}" type="video/mp4"></source>
+      </video>
+    `;
+
+    const videoWrapper = document.createElement('div');
+    videoWrapper.innerHTML = videoTemp;
+    video = videoWrapper.querySelector('video');
+    ctaLink.parentElement.remove();
+    ctaLink = firstSection.querySelector('a');
+
+    // adding video with delay to not affect page loading time
+    setTimeout(() => {
+      picture.replaceWith(video);
+      video.play();
+    }, 3000);
+  }
+
+  // check if the previous element or the previous of that is an h1
+  const isCTALink = ctaLink && isCTALinkCheck(ctaLink);
+  if (isCTALink) ctaLink.classList.add('cta');
   // eslint-disable-next-line no-bitwise
   if (h1 && picture && (h1.compareDocumentPosition(picture) & Node.DOCUMENT_POSITION_PRECEDING)) {
+    const headings = createElement('div', { classes: 'hero-headings' });
+    const elems = [picture, headings];
+    if (h1.nextElementSibling && (h1.nextElementSibling.matches('h2,h3,h4')
+      // also consider a <p> without any children as sub heading except BR
+      || (h1.nextElementSibling.matches('p') && ![...h1.nextElementSibling.children].filter((el) => el.tagName !== 'BR').length))) {
+      const h4 = document.createElement('h4');
+      h4.innerHTML = h1.nextElementSibling.innerHTML;
+      h1.nextElementSibling.remove();
+      headings.appendChild(h4);
+    }
+    headings.appendChild(h1);
+    if (isCTALink) headings.appendChild(getCTAContainer(ctaLink));
     const section = document.createElement('div');
-    section.append(buildBlock('hero', { elems: [picture, h1] }));
+    const newHeroBlock = buildBlock('hero', { elems });
+    newHeroBlock.classList.add(...firstElement.classList);
+    section.append(newHeroBlock);
+    // remove the empty pre-section to avoid decorate it as empty section
+    const containerChildren = firstSection.children;
+    const wrapperChildren = containerChildren[0].children;
+    if (containerChildren.length <= 1 && wrapperChildren.length === 0) firstSection.remove();
+    else if (wrapperChildren.length === 0) containerChildren[0].remove();
+
+    if (video) {
+      section.querySelector('.hero')?.classList.add('hero-with-video');
+    }
+
+    // after all are settled, the new section can be added
     main.prepend(section);
   }
 }
+
 
 /**
  * load fonts.css and set a session storage flag
