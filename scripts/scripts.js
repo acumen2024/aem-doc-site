@@ -3,6 +3,7 @@ import {
   buildBlock,
   loadHeader,
   loadFooter,
+  getMetadata,
   decorateButtons,
   decorateIcons,
   decorateSections,
