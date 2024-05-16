@@ -223,4 +223,71 @@ async function loadPage() {
   loadDelayed();
 }
 
+export async function useGraphQL(query, param) {
+  const configPath = `${window.location.origin}/demo-config.json`;
+  let { data } = await fetchJson(configPath);
+  data = data && data[0];
+  if (!data) {
+    console.log('config not present'); // eslint-disable-line no-console
+    return;
+  }
+  const { origin } = window.location;
+
+  if (origin.includes('.live')) {
+    data['aem-author'] = data['aem-author'].replace('author', data['hlx.live']);
+  } else if (origin.includes('.page')) {
+    data['aem-author'] = data['aem-author'].replace('author', data['hlx.page']);
+  }
+  data['aem-author'] = data['aem-author'].replace(/\/+$/, '');
+  const { pathname } = new URL(query);
+  const url = param ? new URL(`${data['aem-author']}${pathname}${param}`) : new URL(`${data['aem-author']}${pathname}`);
+  const options = data['aem-author'].includes('publish')
+    ? {
+      headers: {
+        'Content-Type': 'text/html',
+      },
+      method: 'get',
+    }
+    : {
+      headers: {
+        'Content-Type': 'text/html',
+      },
+      method: 'get',
+      credentials: 'include',
+    };
+  try {
+    const resp = await fetch(
+      url,
+      options,
+    );
+
+    const error = new Error({
+      code: 500,
+      message: 'login error',
+    });
+
+    if (resp.redirected) throw (error);
+
+    const adventures = await resp.json();
+    const environment = data['aem-author'];
+    return { adventures, environment }; // eslint-disable-line consistent-return
+  } catch (error) {
+    console.log(JSON.stringify(error)); // eslint-disable-line no-console
+  }
+}
+
+export function addElement(type, attributes, values = {}) {
+  const element = document.createElement(type);
+
+  Object.keys(attributes).forEach((attribute) => {
+    element.setAttribute(attribute, attributes[attribute]);
+  });
+
+  Object.keys(values).forEach((val) => {
+    element[val] = values[val];
+  });
+
+  return element;
+}
+
 loadPage();
