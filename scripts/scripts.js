@@ -29,6 +29,15 @@ import {
   addSoundcloudShowHandler,
 } from './video-helper.js';
 
+const pluginContext = {
+  getAllMetadata,
+  getMetadata,
+  loadCSS,
+  loadScript,
+  sampleRUM,
+  toCamelCase,
+  toClassName,
+};
 
 const LCP_BLOCKS = []; // add your LCP blocks to the list
 
