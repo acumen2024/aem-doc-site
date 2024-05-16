@@ -222,6 +222,30 @@ async function loadPage() {
   await loadLazy(document);
   loadDelayed();
 }
+export async function fetchJson(href) {
+  const url = new URL(href);
+  try {
+    const resp = await fetch(
+      url,
+      {
+        headers: {
+          'Content-Type': 'text/html',
+        },
+        method: 'get',
+        credentials: 'include',
+      },
+    );
+    const error = new Error({
+      code: 500,
+      message: 'login error',
+    });
+    if (resp.redirected) throw (error);
+
+    return resp.json();
+  } catch (error) {
+    return error;
+  }
+}
 
 export async function useGraphQL(query, param) {
   const configPath = `${window.location.origin}/demo-config.json`;
