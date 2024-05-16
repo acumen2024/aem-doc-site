@@ -132,6 +132,32 @@ async function loadFonts() {
   }
 }
 
+const TEMPLATE_LIST = [
+  'adventures',
+  'scroll',
+];
+
+/**
+ * Run template specific decoration code.
+ * @param {Element} main The container element
+ */
+async function decorateTemplates(main) {
+  try {
+    const template = getMetadata('template');
+    const templates = TEMPLATE_LIST;
+    if (templates.includes(template)) {
+      const mod = await import(`../templates/${template}/${template}.js`);
+      loadCSS(`${window.hlx.codeBasePath}/templates/${template}/${template}.css`);
+      if (mod.default) {
+        await mod.default(main);
+      }
+    }
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Auto Blocking failed', error);
+  }
+}
+
 /**
  * Builds all synthetic blocks in a container element.
  * @param {Element} main The container element
@@ -168,6 +194,7 @@ async function loadEager(doc) {
   decorateTemplateAndTheme();
   const main = doc.querySelector('main');
   if (main) {
+    decorateTemplates(main);
     decorateMain(main);
     document.body.classList.add('appear');
     await waitForLCP(LCP_BLOCKS);
